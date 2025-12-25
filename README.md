@@ -118,6 +118,8 @@ graph TD
     end
 
 ```
+<img width="1187" height="1042" alt="image" src="https://github.com/user-attachments/assets/d04c0098-881d-4cab-970a-7e538fb2bfdb" />
+
 
 ### 这一架构的优势
 
