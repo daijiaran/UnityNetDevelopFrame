@@ -94,11 +94,7 @@ Unity 无法直接引用外部 `.csproj`。我们利用了 **MSBuild 的 Post-Bu
 * 调用 `LoginPacket.Deserialize()` 还原成结构体。
 * Server 代码读取 `User` 字段，执行登录逻辑。
 
-
-
-### 总结图示
-
-```mermaid
+```
 graph TD
     subgraph "核心 (Core)"
         Shared[GameShared (.NET Standard)]
@@ -130,6 +126,3 @@ graph TD
 1. **修改一处，两端生效**：改了 `Packet` 结构，编译一次，Server 和 Client 都同步更新，不会出现“协议不匹配”的低级错误。
 2. **类型安全**：不需要把数据转成 JSON 字符串再解析，全程都是 C# 强类型对象，编译器会帮你检查错误。
 3. **调试无缝**：因为复制了 `.pdb` 文件，你在调试 Unity 时，可以直接断点跳进 Shared 代码里，就像它们在同一个项目里一样。
-
-**下一步建议：**
-既然理解了结构，接下来是否要在 **Server 端**创建一个 `PlayerManager` 类？我们需要用它来管理所有连接进来的玩家，并为下一步的**位置同步**做准备。
