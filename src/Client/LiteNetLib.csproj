@@ -496,6 +496,9 @@
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>F:\UnityProject\MyNetGameProject\src\Client\Library\PackageCache\com.unity.collections@aea9d3bd5e19\Unity.Collections.Tests\System.Runtime.CompilerServices.Unsafe\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>F:\UnityProject\MyNetGameProject\src\Client\Library\PackageCache\com.unity.nuget.newtonsoft-json@74deb55db2a0\Runtime\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="netstandard">
       <HintPath>F:\unity\Hub\Editor\Editor\Data\NetStandard\ref\2.1.0\netstandard.dll</HintPath>
     </Reference>

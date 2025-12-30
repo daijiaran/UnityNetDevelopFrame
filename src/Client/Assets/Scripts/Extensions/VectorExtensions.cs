@@ -11,7 +11,7 @@ public static class VectorExtensions
 
     // 将 Unity Vector3 转为 NetVector3
     public static NetVector3 ToNet(this Vector3 unityVec)
-    
+    {
         return new NetVector3(unityVec.x, unityVec.y, unityVec.z);
     }
 }

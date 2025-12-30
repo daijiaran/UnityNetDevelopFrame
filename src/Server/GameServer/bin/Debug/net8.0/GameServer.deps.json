@@ -14,17 +14,17 @@
           "GameServer.dll": {}
         }
       },
-      "LiteNetLib/1.3.0": {
+      "LiteNetLib/1.3.5": {
         "runtime": {
           "lib/net8.0/LiteNetLib.dll": {
-            "assemblyVersion": "1.2.0.0",
-            "fileVersion": "1.2.0.0"
+            "assemblyVersion": "1.3.5.0",
+            "fileVersion": "1.3.5.0"
           }
         }
       },
       "GameShared/1.0.0": {
         "dependencies": {
-          "LiteNetLib": "1.3.0"
+          "LiteNetLib": "1.3.5"
         },
         "runtime": {
           "GameShared.dll": {
@@ -41,12 +41,12 @@
       "serviceable": false,
       "sha512": ""
     },
-    "LiteNetLib/1.3.0": {
+    "LiteNetLib/1.3.5": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-8PpEiTL32KJq9RjGdMREf5CFx8j2C4W8RFYa5ulGEYTpAbrhyGq84/cgvBvojJhWdACeyzbRHql0ls9epNj0hg==",
-      "path": "litenetlib/1.3.0",
-      "hashPath": "litenetlib.1.3.0.nupkg.sha512"
+      "sha512": "sha512-WKJEIdQfLDWFEzdKpLZzwB9Umci/2TWxX6ZZnZHhbJ4Z0c1eccS2pZpgUFcHtEnrUY+H1vOFqxzOrgoQpG6unQ==",
+      "path": "litenetlib/1.3.5",
+      "hashPath": "litenetlib.1.3.5.nupkg.sha512"
     },
     "GameShared/1.0.0": {
       "type": "project",

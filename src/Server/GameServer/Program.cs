@@ -1,79 +1,64 @@
-﻿using System;            // 基础系统库
-using System.Net;        // 【关键】修复 EndPoint 报错必须要有这一行
-using System.Threading;  // 用于 Thread.Sleep
-using LiteNetLib;        // 网络库
-using LiteNetLib.Utils;  // 网络工具
-using GameShared.Net;    // 你的共享代码
+﻿using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Collections.Generic;
 
 class Program
 {
+    // 字典：IP地址 -> 玩家数据包
+    static public Dictionary<string, UserPacket> Players = new Dictionary<string, UserPacket>();
+
     static void Main(string[] args)
     {
-        Console.WriteLine("Initializing Game Server...");
+        Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 9050);
+        socket.Bind(localEndPoint);
 
-        // 1. 初始化核心网络组件
-        EventBasedNetListener listener = new EventBasedNetListener();
-        NetManager server = new NetManager(listener);
-        
-        // 2. 配置包处理器
-        NetPacketProcessor packetProcessor = new NetPacketProcessor();
-        
-        // 3. 订阅业务逻辑
-        packetProcessor.SubscribeReusable<LoginRequestPacket, NetPeer>((packet, peer) =>
-        {
-            // peer.ToString() 会自动输出 IP 地址和端口，不需要显式调用 EndPoint
-            Console.WriteLine($"Received Login Request from {peer}: {packet.Username}");
-            
-            // 模拟验证逻辑...
-        });
+        Console.WriteLine("服务端已启动...");
 
-        // 4. 绑定底层网络事件
-        listener.ConnectionRequestEvent += request =>
-        {
-            if (server.ConnectedPeersCount < 100)
-                request.AcceptIfKey("MyGameKey");
-            else
-                request.Reject();
-        };
+        byte[] buffer = new byte[1024];
 
-        // 【修复2】注意这里增加了 'byte channel' 参数
-        // 现在的签名是: (peer, reader, channel, deliveryMethod)
-        listener.NetworkReceiveEvent += (peer, reader, channel, deliveryMethod) =>
+        while (true)
         {
+            EndPoint remoteClient = new IPEndPoint(IPAddress.Any, 0);
+
+            // 【关键点 A】ReceiveFrom 返回的是接收到的“字节数”
+            // buffer 会被填入实际的数据
+            int receivedLength = socket.ReceiveFrom(buffer, ref remoteClient);
+
+            // 拿到发送者的唯一标识 (IP:Port)
+            string clientKey = remoteClient.ToString();
+
             try 
             {
-                // 将原始数据交给 Processor 处理
-                packetProcessor.ReadAllPackets(reader, peer);
+                // 【关键点 B】数据截取
+                // buffer 可能有 1024 这么大，但只需要前 receivedLength 个字节
+                byte[] validBytes = new byte[receivedLength];
+                Array.Copy(buffer, validBytes, receivedLength);
+
+                // 【关键点 C】反序列化：把字节变回 UserPacket 对象
+                UserPacket newPacket = new UserPacket(validBytes);
+
+                Console.WriteLine($"收到 {clientKey} ({newPacket.Name}) 的位置: {newPacket.X}, {newPacket.Y}, {newPacket.Z}");
+
+                // 【关键点 D】更新或添加玩家
+                if (Players.ContainsKey(clientKey))
+                {
+                    Players[clientKey] = newPacket; // 更新数据
+                }
+                else
+                {
+                    Players.Add(clientKey, newPacket); // 新增玩家
+                    Console.WriteLine($"新玩家加入: {newPacket.Name}");
+                }
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                Console.WriteLine($"Error processing packet: {ex.Message}");
-            }
-        };
-
-        // 5. 启动服务器
-        server.Start(9050);
-        Console.WriteLine("Server started on port 9050. Press ESC to quit.");
-
-        // 6. 服务器主循环
-        const int TickRate = 60;
-        const int MsPerTick = 1000 / TickRate;
-
-        while (!Console.KeyAvailable || Console.ReadKey(true).Key != ConsoleKey.Escape)
-        {
-            var startTime = DateTime.Now;
-
-            server.PollEvents();
-
-            var executionTime = (DateTime.Now - startTime).TotalMilliseconds;
-            var sleepTime = MsPerTick - (int)executionTime;
-
-            if (sleepTime > 0)
-            {
-                Thread.Sleep(sleepTime);
+                Console.WriteLine($"数据解析错误，可能是发来的包格式不对: {e.Message}");
             }
         }
-        
-        server.Stop();
     }
+    
+    
+    
 }

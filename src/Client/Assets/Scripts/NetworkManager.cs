@@ -1,80 +1,88 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using GameShared.Net;
+using Plugins.MyNetLib;
 
-public class NetworkManager : MonoBehaviour
+public class NetworkManager : SingelBase<NetworkManager>
 {
-    private NetManager _client;
-    private EventBasedNetListener _listener;
-    private NetPacketProcessor _packetProcessor;
+    public void Awake()
+    {
+        Init();
+    }
+
+    public GameObject PlayerPrefab;
+    public PlayerControl playerSelf;
+    public Dictionary<String, PlayerControl> players;
+    public bool isJoinServise = false;
     
-    //定义一个复用的数据写入器，避免每次发送都 new
-    private NetDataWriter _dataWriter;
-
-    void Start()
+    private UserPacket userPacket;
+    private NetConect  netConect; 
+    
+    
+    //先创建自己的玩家
+    public void GameStart(String name)
     {
-        _listener = new EventBasedNetListener();
-        _packetProcessor = new NetPacketProcessor();
-        _dataWriter = new NetDataWriter(); // 初始化写入器
-        _client = new NetManager(_listener);
-
-        // 启动客户端
-        _client.Start();
-        // 连接本地服务器
-        _client.Connect("localhost", 9050, "MyGameKey");
-
-        // 【事件回调】
-        // 使用 _ 忽略不需要的参数，消除 IDE 警告
-        _listener.NetworkReceiveEvent += (peer, reader, _, _) =>
-        {
-            // 读取数据包
-            _packetProcessor.ReadAllPackets(reader, peer);
-        };
-        
-        _listener.PeerConnectedEvent += peer =>
-        {
-            // 如果 peer.EndPoint 报错，直接使用 peer.Port 或 peer.ToString()
-            // peer.ToString() 在 LiteNetLib 中通常会返回 "IP:Port"
-            Debug.Log($"Connected to Server: {peer.Address}:{peer.Port}");
-            SendLogin();
-        };
+        GameObject player = Instantiate(PlayerPrefab);
+        playerSelf = player.GetComponent<PlayerControl>();
+        playerSelf.PlayerName.text = name;
+        isJoinServise = true;
+        netConect.takePlayerPacket+=synchronousOtherPlayer;
     }
 
-    void Update()
+    private void Update()
     {
-        if (_client != null)
-            _client.PollEvents();
-    }
-
-    void SendLogin()
-    {
-        LoginRequestPacket login = new LoginRequestPacket 
-        { 
-            Username = "Player1", 
-            Password = "SecretPassword" 
-        };
-        
-        if (_client.FirstPeer != null)
+        if (isJoinServise)
         {
-            //手动两步发送法（适用于所有版本）
-            
-            // 1. 重置写入器，清空旧数据
-            _dataWriter.Reset();
-            
-            // 2. 让 PacketProcessor 把对象序列化进 _dataWriter
-            // 注意：这里必须用 Write，不要用 WriteNetSerializable
-            // Write 会自动写入包头 ID，这样服务器才能认出这是 LoginRequestPacket
-            _packetProcessor.Write(_dataWriter, login);
-            
-            // 3. 通过 Peer 发送底层的 byte 数组
-            _client.FirstPeer.Send(_dataWriter, DeliveryMethod.ReliableOrdered);
+           SendPlayer();
         }
     }
 
-    void OnDestroy()
+
+
+
+    public void SendPlayer()
     {
-        if (_client != null)
-            _client.Stop();
+        userPacket.Name  = playerSelf.PlayerName.text; 
+        userPacket.X = playerSelf.transform.position.x;
+        userPacket.Y = playerSelf.transform.position.y;
+        userPacket.Z = playerSelf.transform.position.z;
+        netConect.SendPositionPacket(userPacket);
     }
+
+    public void synchronousOtherPlayer(String IpDetail , UserPacket userPacket)
+    {
+        
+        
+        if (!players.ContainsKey(IpDetail))
+        {   
+            //如果没有这个玩家就创建一个新的玩家并且配置上位置信息
+            players.Add(IpDetail,CreatNewPlayer());
+            players[IpDetail].PlayerName.text = userPacket.Name;
+            Vector3 vtr3 = new Vector3(userPacket.X,userPacket.Y,userPacket.Z);
+            players[IpDetail].transform.position = vtr3;
+        }
+        else
+        {
+            //如果此玩家存在则直接同步位置信息
+            players[IpDetail].PlayerName.text = userPacket.Name;
+            Vector3 vtr3 = new Vector3(userPacket.X,userPacket.Y,userPacket.Z);
+            players[IpDetail].transform.position = vtr3;
+        }
+    }
+
+
+    public PlayerControl CreatNewPlayer()
+    {
+        GameObject player = Instantiate(PlayerPrefab);
+        return player.GetComponent<PlayerControl>();
+    }
+    
+    
+    
+    
+    
+    
 }
