@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace Plugins.MyNetLib
 {
+    
+    
+    
+    
     public class NetConect
     {
         
@@ -45,6 +49,8 @@ namespace Plugins.MyNetLib
         // 【2】创建一个线程安全的队列，作为“篮子”
         private ConcurrentQueue<string> _msgQueue = new ConcurrentQueue<string>();
 
+        // 【新增】专门存放玩家数据包的队列
+        private ConcurrentQueue<PacketInfo> _packetQueue = new ConcurrentQueue<PacketInfo>();
         
         
         
@@ -107,21 +113,24 @@ namespace Plugins.MyNetLib
                     {
                         EndPoint remotePoint = new IPEndPoint(IPAddress.Any, 0);
                         
-                       //获取一个包信息
-                       //然后加入队列由unity处理
+                        // 【修改】实现接收逻辑
+                        int length = socket.ReceiveFrom(recvBuffer, ref remotePoint);
                         
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
+                        // 截取有效数据
+                        byte[] validBytes = new byte[length];
+                        Array.Copy(recvBuffer, validBytes, length);
+
+                        // 反序列化
+                        UserPacket packet = new UserPacket(validBytes);
+
+                        // 【新增】放入队列等待 Unity 主线程处理
+                        _packetQueue.Enqueue(new PacketInfo() { 
+                            Ip = remotePoint.ToString(), 
+                            Packet = packet 
+                        });
                     }
                     catch (Exception)
                     {
-                        // 处理连接断开或 socket 关闭的情况
                         break;
                     }
                 }
@@ -137,27 +146,20 @@ namespace Plugins.MyNetLib
         /// </summary>
         public void Update()
         {
-            // 只要队列里有数据，就取出来
             while (_msgQueue.TryDequeue(out string msg))
             {
-                // // 这里是在主线程运行的，所以可以安全地通知 UI
-                // takeMessage?.Invoke(msg);
-                
-                //这里接受到玩家包信息，然后触发takePlayerPacket事件
-                
-                
-                
-                
+                takeMessage?.Invoke(msg);
+            }
+
+            // 【新增】处理玩家数据包队列
+            while (_packetQueue.TryDequeue(out PacketInfo info))
+            {
+                // 触发事件，将 IP 和 包数据传给 NetworkManager
+                takePlayerPacket?.Invoke(info.Ip, info.Packet);
             }
         }
+
         
-        
-        
-        
-        
-        
-        
-        // 建议加一个关闭方法
         public void Close()
         {
             socket.Close();

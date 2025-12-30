@@ -8,18 +8,40 @@ using Plugins.MyNetLib;
 
 public class NetworkManager : SingelBase<NetworkManager>
 {
-    public void Awake()
-    {
-        Init();
-    }
-
+    
+    
     public GameObject PlayerPrefab;
     public PlayerControl playerSelf;
+    
     public Dictionary<String, PlayerControl> players;
+    
     public bool isJoinServise = false;
     
     private UserPacket userPacket;
     private NetConect  netConect; 
+    
+    
+    
+    
+    public void Awake()
+    {
+        // 1. 初始化玩家字典（解决当前的报错）
+        players = new Dictionary<string, PlayerControl>();
+
+        // 2. 初始化数据包对象（防止 SendPlayer 报错）
+        userPacket = new UserPacket();
+
+        // 3. 初始化网络连接对象（防止 Update 报错）
+        netConect = new NetConect();
+        
+        
+        
+        // 4. 开启接收线程（否则收不到消息）
+        netConect.ReceiveInformation();
+        Init();
+    }
+
+
     
     
     //先创建自己的玩家
@@ -29,11 +51,19 @@ public class NetworkManager : SingelBase<NetworkManager>
         playerSelf = player.GetComponent<PlayerControl>();
         playerSelf.PlayerName.text = name;
         isJoinServise = true;
+        
         netConect.takePlayerPacket+=synchronousOtherPlayer;
     }
 
     private void Update()
     {
+        
+        //驱动 NetConect 处理消息队列
+        if (netConect != null)
+        {
+            netConect.Update();
+        }
+        
         if (isJoinServise)
         {
            SendPlayer();
@@ -45,6 +75,9 @@ public class NetworkManager : SingelBase<NetworkManager>
 
     public void SendPlayer()
     {
+        // 确保 userPacket 不为空
+        if (userPacket == null) userPacket = new UserPacket();
+        
         userPacket.Name  = playerSelf.PlayerName.text; 
         userPacket.X = playerSelf.transform.position.x;
         userPacket.Y = playerSelf.transform.position.y;

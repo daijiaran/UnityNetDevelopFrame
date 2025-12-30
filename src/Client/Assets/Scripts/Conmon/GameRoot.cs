@@ -14,15 +14,15 @@ public class GameRoot : SingelBase<GameRoot>
    
    private void Start()
    {
-     GameObject starpanel  = Instantiate(Resources.Load<GameObject>("Prefabs/StartGamePanel"));
-     StartGamePanel = starpanel.GetComponent<StartGamePanel>();
+     // GameObject starpanel  = Instantiate(Resources.Load<GameObject>("Prefabs/GameStart"));
+     // StartGamePanel = starpanel.GetComponent<StartGamePanel>();
      StartGamePanel.transform.SetParent(GetParent());
      StartGamePanel.GameStarteEvent += joinGame;
    }
 
    public void joinGame(String PlayerName)
    {
-       GameObject networkManager = Instantiate(Resources.Load<GameObject>("Prefabs/NetworkManager"));
+       GameObject networkManager = Instantiate(Resources.Load<GameObject>("Prefabs/NetWrokManager"));
        NetworkManager = networkManager.GetComponent<NetworkManager>();
        NetworkManager.transform.SetParent(GetParent());
        NetworkManager.GameStart(PlayerName);

@@ -5,8 +5,11 @@ using System.Collections.Generic;
 
 class Program
 {
-    // 字典：IP地址 -> 玩家数据包
+    // 字典：IP地址字符串 -> 玩家数据包
     static public Dictionary<string, UserPacket> Players = new Dictionary<string, UserPacket>();
+    
+    // 【新增】字典：IP地址字符串 -> 客户端的 EndPoint (用于发送数据)
+    static public Dictionary<string, EndPoint> ClientEndPoints = new Dictionary<string, EndPoint>();
 
     static void Main(string[] args)
     {
@@ -22,43 +25,59 @@ class Program
         {
             EndPoint remoteClient = new IPEndPoint(IPAddress.Any, 0);
 
-            // 【关键点 A】ReceiveFrom 返回的是接收到的“字节数”
-            // buffer 会被填入实际的数据
+            // 接收数据
             int receivedLength = socket.ReceiveFrom(buffer, ref remoteClient);
-
-            // 拿到发送者的唯一标识 (IP:Port)
             string clientKey = remoteClient.ToString();
 
             try 
             {
-                // 【关键点 B】数据截取
-                // buffer 可能有 1024 这么大，但只需要前 receivedLength 个字节
+                // 截取有效数据
                 byte[] validBytes = new byte[receivedLength];
                 Array.Copy(buffer, validBytes, receivedLength);
 
-                // 【关键点 C】反序列化：把字节变回 UserPacket 对象
+                // 反序列化
                 UserPacket newPacket = new UserPacket(validBytes);
 
-                Console.WriteLine($"收到 {clientKey} ({newPacket.Name}) 的位置: {newPacket.X}, {newPacket.Y}, {newPacket.Z}");
+                Console.WriteLine($"收到 {clientKey} ({newPacket.Name}) 的位置: {newPacket.X:F2}, {newPacket.Y:F2}, {newPacket.Z:F2}");
 
-                // 【关键点 D】更新或添加玩家
+                // 更新玩家数据
                 if (Players.ContainsKey(clientKey))
                 {
-                    Players[clientKey] = newPacket; // 更新数据
+                    Players[clientKey] = newPacket;
                 }
                 else
                 {
-                    Players.Add(clientKey, newPacket); // 新增玩家
+                    Players.Add(clientKey, newPacket);
                     Console.WriteLine($"新玩家加入: {newPacket.Name}");
+                }
+
+                // 【新增】更新或保存客户端的 EndPoint
+                if (!ClientEndPoints.ContainsKey(clientKey))
+                {
+                    ClientEndPoints.Add(clientKey, remoteClient);
+                }
+                else
+                {
+                    ClientEndPoints[clientKey] = remoteClient;
+                }
+
+                // 【新增】广播：把收到的这个包发给其他所有客户端
+                foreach (var kvp in ClientEndPoints)
+                {
+                    string targetKey = kvp.Key;
+                    EndPoint targetEndPoint = kvp.Value;
+
+                    // 不发给自己 (可选，通常客户端有本地预测，不需要服务器发回给自己)
+                    if (targetKey != clientKey)
+                    {
+                        socket.SendTo(validBytes, targetEndPoint);
+                    }
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"数据解析错误，可能是发来的包格式不对: {e.Message}");
+                Console.WriteLine($"错误: {e.Message}");
             }
         }
     }
-    
-    
-    
 }

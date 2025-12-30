@@ -368,7 +368,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerControl
   collider: {fileID: 0}
   rigidbody: {fileID: 0}
-  PlayerName: {fileID: 0}
+  PlayerName: {fileID: 2558941429253484223}
 --- !u!65 &5280192797175363554
 BoxCollider:
   m_ObjectHideFlags: 0
